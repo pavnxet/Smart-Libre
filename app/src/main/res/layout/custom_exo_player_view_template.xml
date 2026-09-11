@@ -133,4 +133,9 @@
         android:layout_height="wrap_content"
         android:gravity="center_horizontal"/>
 
+    <include
+        android:id="@+id/timestamps_sidebar"
+        layout="@layout/view_timestamps_sidebar"
+        android:visibility="gone" />
+
 </merge>

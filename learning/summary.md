@@ -1,0 +1,59 @@
+# LibreTube Session History
+
+## Session 2026-09-11
+- Cloned LibreTube from official repository into `E:\Codes\Testing\LibreTube`.
+- Initialized isolated project memory files and `AGENTS.md`.
+- Verified OpenJDK 17 and Android SDK platform-tools configuration on `E:\`.
+## Session 2026-09-11 (Update)
+- Ran graphify AST extraction on LibreTube codebase (458 source files).
+- Generated interactive knowledge graph at `graphify-out/graph.html` (3,538 nodes, 7,825 edges, 219 communities).
+## Session 2026-09-11 (Feature Implementation & Build Complete)
+- Implemented "Live In-Player Timestamps Sidebar" feature in LibreTube:
+  - Created `TimestampItem.kt` model with timestamp regex parser (`mm:ss`, `hh:mm:ss`, notes).
+  - Designed `view_timestamps_sidebar.xml` right-docked translucent floating overlay and `item_timestamp_entry.xml`.
+  - Built `TimestampsSidebarAdapter.kt` and wired seek actions.
+  - Added `timestamps_sidebar_toggle` in `exo_styled_player_control_view.xml`.
+  - Integrated into `custom_exo_player_view_template.xml` and `PlayerFragment.kt` with SharedPreferences persistence.
+- Successfully compiled and built Debug APK:
+  - Output: `E:\Codes\Testing\LibreTube\app\build\outputs\apk\debug\app-debug.apk` (Size: 20.6 MB).
+  - All Gradle/SDK/JDK caches stayed strictly on `E:\` without touching drive `C:`.
+## Session 2026-09-11 (User Verification Success)
+- User tested the Live In-Player Timestamps Sidebar APK on mobile.
+- Confirmed that the feature works seamlessly (video continues playing uninterrupted while tapping timestamps to seek).
+## Session 2026-09-11 (AI Smart Chapters & Turso Cloud Sync Complete)
+- Fully ported and integrated the Chrome Extension (YT Smart Chapters Pro v3.0) into LibreTube:
+  - Added `anime_wow.mp3` completion sound to `res/raw`.
+  - Added `TranscriptHelper.kt` to extract VTT subtitles into timestamped transcripts.
+  - Implemented `AiChaptersService.kt` with Qwen 3.8-max (AIKit) and OpenRouter support, automatic 30-minute chunking, and educational MCQ prompt.
+  - Implemented `TursoSyncService.kt` for cloud database synchronization over libSQL HTTPS pipeline.
+  - Created `AiSettingsSheet.kt` and `dialog_ai_settings.xml` for easy in-app configuration of API tokens and Turso credentials.
+  - Updated `view_timestamps_sidebar.xml` with Category Filter Chips (All, ❓ Ques, 🎯 Option, 💡 Explain), AI Generate button, and DB Sync button.
+  - Connected real-time seeking, chip filtering, and auto-load in `PlayerFragment.kt`.
+- Built final APK: `E:\Codes\Testing\LibreTube\app\build\outputs\apk\debug\app-debug.apk` (Size: 24.5 MB).
+## Session 2026-09-11 (TranscriptAPI Credentials Setting Update)
+- Integrated TranscriptAPI.com into `TranscriptHelper.kt` using `https://transcriptapi.com/api/v2/youtube/transcript`.
+- Added user-facing credential input box in `dialog_ai_settings.xml` and `AiSettingsSheet.kt` under "📜 TranscriptAPI.com Credentials".
+- Configured user-manageable TranscriptAPI setting where users can enter their key anytime from in-app settings.
+- Build succeeded in 1m (Incremental build).
+- Verified output APK: `E:\Codes\Testing\LibreTube\app\build\outputs\apk\debug\app-debug.apk`.
+## Session 2026-09-11 (Seekbar Markers, Navigation Buttons & AI SponsorBlock)
+- Added forward (`timestamp_next`) and backward (`timestamp_prev`) buttons in `exo_styled_player_control_view.xml` directly next to `fullscreen` in `exo_basic_controls`.
+- Added dynamic seekbar timestamp marker rendering in `ChapterTimeBar.kt` (`setTimestampMarkers()`, draws `#FFD54F` accent dots along progress bar).
+- Ported Chrome extension's `analyzeRemovableSegments` AI prompt into `AiChaptersService.kt` to detect Sponsor, Intro, Outro, Selfpromo, Filler, and Tangents.
+- Added `btn_ai_sponsorblock` ("🚫 Scan SB") to `view_timestamps_sidebar.xml`.
+- Connected marker updates, prev/next timestamp seeking, and AI SponsorBlock segment drawing into `PlayerFragment.kt`.
+- Successfully compiled and built Debug APK: `E:\Codes\Testing\LibreTube\app\build\outputs\apk\debug\app-debug.apk` (Size: 24.5 MB).
+## Session 2026-09-11 (Choice-Wise Navigation Filter & App Version Bump to v32.2)
+- Added choice-wise category filter dropdown button (`timestamp_filter`) in `exo_styled_player_control_view.xml`.
+- Integrated `PopupMenu` in `PlayerFragment.kt` allowing users to select:
+  - 📌 All Timestamps
+  - ❓ Questions Only
+  - 🎯 Options / Answers Only
+  - 💡 Explanations Only
+- Seekbar markers (`ChapterTimeBar`) and forward/backward buttons now dynamically filter according to the active category.
+- Bumped app version in `app/build.gradle.kts`:
+  - `versionCode`: 72 -> 73
+  - `versionName`: "32.1" -> "32.2"
+- Successfully compiled and built Debug APK: `E:\Codes\Testing\LibreTube\app\build\outputs\apk\debug\app-debug.apk`.
+
+

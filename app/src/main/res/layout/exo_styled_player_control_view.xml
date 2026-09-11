@@ -102,6 +102,14 @@
                     app:tint="@android:color/white" />
 
                 <ImageButton
+                    android:id="@+id/timestamps_sidebar_toggle"
+                    style="@style/PlayerControlTop"
+                    android:layout_marginEnd="2dp"
+                    android:src="@drawable/ic_list"
+                    android:tooltipText="Timestamps Sidebar"
+                    app:tint="@android:color/white" />
+
+                <ImageButton
                     android:id="@+id/queue_toggle"
                     style="@style/PlayerControlTop"
                     android:layout_marginEnd="2dp"
@@ -293,7 +301,30 @@
             <LinearLayout
                 android:id="@id/exo_basic_controls"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content">
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageButton
+                    android:id="@+id/timestamp_filter"
+                    style="@style/PlayerControlBottom"
+                    android:src="@drawable/ic_filter_sort"
+                    android:tooltipText="Filter Timestamps"
+                    app:tint="@android:color/white" />
+
+                <ImageButton
+                    android:id="@+id/timestamp_prev"
+                    style="@style/PlayerControlBottom"
+                    android:src="@drawable/ic_prev"
+                    android:tooltipText="Previous Timestamp"
+                    app:tint="@android:color/white" />
+
+                <ImageButton
+                    android:id="@+id/timestamp_next"
+                    style="@style/PlayerControlBottom"
+                    android:src="@drawable/ic_next"
+                    android:tooltipText="Next Timestamp"
+                    app:tint="@android:color/white" />
 
                 <ImageButton
                     android:id="@+id/fullscreen"

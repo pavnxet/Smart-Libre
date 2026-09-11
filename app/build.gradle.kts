@@ -34,10 +34,10 @@ android {
         applicationId = "com.github.libretube"
         minSdk = 26
         targetSdk = 36
-        versionCode = 72
-        versionName = "32.1"
+        versionCode = 10001
+        versionName = "1.0.0-smartchapters"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        resValue("string", "app_name", "LibreTube")
+        resValue("string", "app_name", "Smart Libre")
     }
 
     ksp {
@@ -74,7 +74,7 @@ android {
         getByName("debug") {
             isDebuggable = true
             applicationIdSuffix = ".debug"
-            resValue("string", "app_name", "LibreTube Debug")
+            resValue("string", "app_name", "Smart Libre Debug")
         }
     }
 

@@ -110,6 +110,15 @@ import com.github.libretube.util.OnlineTimeFrameReceiver
 import com.github.libretube.util.PlayingQueue
 import com.github.libretube.util.TextUtils
 import com.github.libretube.util.TextUtils.toTimeInSeconds
+import com.github.libretube.obj.TimestampItem
+import com.github.libretube.obj.ChapterCategory
+import com.github.libretube.ui.adapters.TimestampsSidebarAdapter
+import com.github.libretube.ui.sheets.AiSettingsSheet
+import com.github.libretube.helpers.AiChaptersService
+import com.github.libretube.helpers.TursoSyncService
+import com.github.libretube.helpers.TranscriptHelper
+import android.media.MediaPlayer
+import android.widget.Toast
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -780,6 +789,8 @@ class PlayerFragment : Fragment(R.layout.fragment_player), CustomPlayerCallback 
         }
 
         binding.descriptionLayout.handleLink = this::handleLink
+
+        setupTimestampsSidebar()
     }
 
     private fun updateMaxSheetHeight() {
@@ -1468,6 +1479,320 @@ class PlayerFragment : Fragment(R.layout.fragment_player), CustomPlayerCallback 
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    private var timestampsAdapter: TimestampsSidebarAdapter? = null
+
+    private fun setupTimestampsSidebar() {
+        val sidebar = playerBackgroundBinding.timestampsSidebar
+        val sidebarRoot = sidebar.root
+        val rvTimestamps = sidebar.rvTimestamps
+        val btnAiSettings = sidebar.btnAiSettings
+        val btnEdit = sidebar.btnEditTimestamps
+        val btnClose = sidebar.btnCloseTimestampsSidebar
+        val layoutEdit = sidebar.layoutEditTimestamps
+        val etInput = sidebar.etTimestampsInput
+        val btnApply = sidebar.btnApplyTimestamps
+        val tvEmpty = sidebar.tvEmptyTimestamps
+        val btnAiGenerate = sidebar.btnAiGenerate
+        val btnTursoSync = sidebar.btnTursoSync
+        val pbAiLoading = sidebar.pbAiLoading
+
+        val btnAiSponsorblock = sidebar.btnAiSponsorblock
+
+        val prefs = requireContext().getSharedPreferences("video_custom_timestamps", Context.MODE_PRIVATE)
+        var activeTimestamps: List<TimestampItem> = emptyList()
+        var selectedNavCategory: ChapterCategory = ChapterCategory.ALL
+
+        fun getNavFilteredTimestamps(): List<TimestampItem> {
+            return if (selectedNavCategory == ChapterCategory.ALL) {
+                activeTimestamps
+            } else {
+                activeTimestamps.filter { it.category == selectedNavCategory }
+            }
+        }
+
+        fun updateSeekbarMarkers() {
+            val markers = getNavFilteredTimestamps().map { it.timeMs }
+            playerControlsBinding.exoProgress.setTimestampMarkers(markers)
+        }
+
+        fun loadAndDisplayTimestamps(text: String? = null) {
+            val content = text ?: prefs.getString(videoId, "") ?: ""
+            etInput.setText(content)
+            val parsedList = TimestampItem.parseFromText(content)
+            activeTimestamps = parsedList
+            tvEmpty.isVisible = parsedList.isEmpty()
+            timestampsAdapter?.updateData(parsedList)
+
+            // Update seekbar timestamp markers based on active filter
+            updateSeekbarMarkers()
+        }
+
+        timestampsAdapter = TimestampsSidebarAdapter { item ->
+            if (::playerController.isInitialized) {
+                playerController.seekTo(item.timeMs)
+            }
+        }
+
+        rvTimestamps.layoutManager = LinearLayoutManager(requireContext())
+        rvTimestamps.adapter = timestampsAdapter
+
+        loadAndDisplayTimestamps()
+
+        // Seekbar Timestamp Category Filter Dropdown Menu
+        playerControlsBinding.timestampFilter.setOnClickListener { view ->
+            val popup = androidx.appcompat.widget.PopupMenu(requireContext(), view)
+            popup.menu.add(0, 1, 0, if (selectedNavCategory == ChapterCategory.ALL) "✓ 📌 All Timestamps" else "📌 All Timestamps")
+            popup.menu.add(0, 2, 1, if (selectedNavCategory == ChapterCategory.QUES) "✓ ❓ Questions Only" else "❓ Questions Only")
+            popup.menu.add(0, 3, 2, if (selectedNavCategory == ChapterCategory.ANS) "✓ 🎯 Options / Answers Only" else "🎯 Options / Answers Only")
+            popup.menu.add(0, 4, 3, if (selectedNavCategory == ChapterCategory.EXPLAIN) "✓ 💡 Explanations Only" else "💡 Explanations Only")
+
+            popup.setOnMenuItemClickListener { menuItem ->
+                when (menuItem.itemId) {
+                    1 -> {
+                        selectedNavCategory = ChapterCategory.ALL
+                        Toast.makeText(context, "Navigating: 📌 All Timestamps", Toast.LENGTH_SHORT).show()
+                    }
+                    2 -> {
+                        selectedNavCategory = ChapterCategory.QUES
+                        Toast.makeText(context, "Navigating: ❓ Questions Only", Toast.LENGTH_SHORT).show()
+                    }
+                    3 -> {
+                        selectedNavCategory = ChapterCategory.ANS
+                        Toast.makeText(context, "Navigating: 🎯 Options Only", Toast.LENGTH_SHORT).show()
+                    }
+                    4 -> {
+                        selectedNavCategory = ChapterCategory.EXPLAIN
+                        Toast.makeText(context, "Navigating: 💡 Explanations Only", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                updateSeekbarMarkers()
+                true
+            }
+            popup.show()
+        }
+
+        // Seekbar Previous Timestamp Button
+        playerControlsBinding.timestampPrev.setOnClickListener {
+            val targets = getNavFilteredTimestamps()
+            if (!::playerController.isInitialized || targets.isEmpty()) {
+                val filterName = when (selectedNavCategory) {
+                    ChapterCategory.ALL -> "timestamps"
+                    ChapterCategory.QUES -> "questions"
+                    ChapterCategory.ANS -> "options"
+                    ChapterCategory.EXPLAIN -> "explanations"
+                    else -> "items"
+                }
+                Toast.makeText(context, "No $filterName found", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val curPos = playerController.currentPosition
+            // Find last timestamp that is at least 1.5 seconds before current position
+            val prevTarget = targets.lastOrNull { it.timeMs < curPos - 1500L }
+                ?: targets.firstOrNull()
+
+            if (prevTarget != null) {
+                playerController.seekTo(prevTarget.timeMs)
+                Toast.makeText(context, "⏮ ${prevTarget.note.ifEmpty { prevTarget.timeFormatted }}", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // Seekbar Next Timestamp Button
+        playerControlsBinding.timestampNext.setOnClickListener {
+            val targets = getNavFilteredTimestamps()
+            if (!::playerController.isInitialized || targets.isEmpty()) {
+                val filterName = when (selectedNavCategory) {
+                    ChapterCategory.ALL -> "timestamps"
+                    ChapterCategory.QUES -> "questions"
+                    ChapterCategory.ANS -> "options"
+                    ChapterCategory.EXPLAIN -> "explanations"
+                    else -> "items"
+                }
+                Toast.makeText(context, "No $filterName found", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val curPos = playerController.currentPosition
+            // Find first timestamp that is at least 1.5 seconds after current position
+            val nextTarget = targets.firstOrNull { it.timeMs > curPos + 1500L }
+
+            if (nextTarget != null) {
+                playerController.seekTo(nextTarget.timeMs)
+                Toast.makeText(context, "⏭ ${nextTarget.note.ifEmpty { nextTarget.timeFormatted }}", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "No more timestamps in filter", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // Auto-check Turso cloud database on load
+        viewLifecycleOwner.lifecycleScope.launch {
+            val cloudData = TursoSyncService.loadTimestamps(requireContext(), videoId)
+            if (!cloudData.isNullOrBlank()) {
+                prefs.edit().putString(videoId, cloudData).apply()
+                loadAndDisplayTimestamps(cloudData)
+                Toast.makeText(context, "Loaded from Turso Cloud DB!", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // Category Filter Chips
+        sidebar.chipAll.setOnClickListener { timestampsAdapter?.applyFilter(ChapterCategory.ALL) }
+        sidebar.chipQues.setOnClickListener { timestampsAdapter?.applyFilter(ChapterCategory.QUES) }
+        sidebar.chipAns.setOnClickListener { timestampsAdapter?.applyFilter(ChapterCategory.ANS) }
+        sidebar.chipExplain.setOnClickListener { timestampsAdapter?.applyFilter(ChapterCategory.EXPLAIN) }
+
+        // AI Settings Sheet
+        btnAiSettings.setOnClickListener {
+            AiSettingsSheet().show(childFragmentManager, "AiSettingsSheet")
+        }
+
+        // Toggle sidebar from player top bar button
+        playerControlsBinding.timestampsSidebarToggle.setOnClickListener {
+            val willShow = !sidebarRoot.isVisible
+            sidebarRoot.isVisible = willShow
+            if (willShow) {
+                loadAndDisplayTimestamps()
+            }
+        }
+
+        btnClose.setOnClickListener {
+            sidebarRoot.isGone = true
+        }
+
+        btnEdit.setOnClickListener {
+            layoutEdit.isVisible = !layoutEdit.isVisible
+        }
+
+        btnApply.setOnClickListener {
+            val newText = etInput.text?.toString().orEmpty()
+            prefs.edit().putString(videoId, newText).apply()
+            layoutEdit.isGone = true
+            loadAndDisplayTimestamps(newText)
+        }
+
+        // AI Generate Chapters Action
+        btnAiGenerate.setOnClickListener {
+            if (!::streams.isInitialized) {
+                Toast.makeText(context, "Stream not ready yet", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            viewLifecycleOwner.lifecycleScope.launch {
+                pbAiLoading.isVisible = true
+                btnAiGenerate.isEnabled = false
+                btnAiSponsorblock.isEnabled = false
+                Toast.makeText(context, "Fetching transcript & generating with AI...", Toast.LENGTH_SHORT).show()
+
+                val transcript = TranscriptHelper.extractTranscript(requireContext(), videoId, streams)
+                if (transcript.isBlank()) {
+                    pbAiLoading.isGone = true
+                    btnAiGenerate.isEnabled = true
+                    btnAiSponsorblock.isEnabled = true
+                    Toast.makeText(context, "No transcript/subtitles found for this video", Toast.LENGTH_LONG).show()
+                    return@launch
+                }
+
+                val aiResult = AiChaptersService.generateChapters(requireContext(), transcript)
+                pbAiLoading.isGone = true
+                btnAiGenerate.isEnabled = true
+                btnAiSponsorblock.isEnabled = true
+
+                if (aiResult.isSuccess) {
+                    val generatedText = aiResult.getOrNull().orEmpty()
+                    prefs.edit().putString(videoId, generatedText).apply()
+                    loadAndDisplayTimestamps(generatedText)
+                    Toast.makeText(context, "✨ AI Chapters Generated!", Toast.LENGTH_SHORT).show()
+
+                    // Play Anime Wow completion sound if enabled
+                    val aiPrefs = requireContext().getSharedPreferences("smart_chapters_ai_prefs", Context.MODE_PRIVATE)
+                    if (aiPrefs.getBoolean(AiChaptersService.KEY_SOUND_ENABLED, true)) {
+                        try {
+                            val mp = MediaPlayer.create(requireContext(), R.raw.anime_wow)
+                            mp?.setOnCompletionListener { it.release() }
+                            mp?.start()
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
+
+                    // Auto-sync generated timestamps to Turso Cloud DB
+                    TursoSyncService.saveTimestamps(requireContext(), videoId, generatedText)
+                } else {
+                    val error = aiResult.exceptionOrNull()?.message ?: "Unknown AI error"
+                    Toast.makeText(context, "AI Error: $error", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+
+        // AI SponsorBlock Scan Action
+        btnAiSponsorblock.setOnClickListener {
+            if (!::streams.isInitialized) {
+                Toast.makeText(context, "Stream not ready yet", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            viewLifecycleOwner.lifecycleScope.launch {
+                pbAiLoading.isVisible = true
+                btnAiGenerate.isEnabled = false
+                btnAiSponsorblock.isEnabled = false
+                Toast.makeText(context, "🚫 Scanning for sponsors, intros & fillers with AI...", Toast.LENGTH_SHORT).show()
+
+                val transcript = TranscriptHelper.extractTranscript(requireContext(), videoId, streams)
+                if (transcript.isBlank()) {
+                    pbAiLoading.isGone = true
+                    btnAiGenerate.isEnabled = true
+                    btnAiSponsorblock.isEnabled = true
+                    Toast.makeText(context, "No transcript found to scan", Toast.LENGTH_LONG).show()
+                    return@launch
+                }
+
+                val durationSec = streams.duration.toDouble()
+                val sbResult = AiChaptersService.analyzeRemovableSegments(requireContext(), transcript, durationSec)
+                pbAiLoading.isGone = true
+                btnAiGenerate.isEnabled = true
+                btnAiSponsorblock.isEnabled = true
+
+                if (sbResult.isSuccess) {
+                    val newSegments = sbResult.getOrNull().orEmpty()
+                    if (newSegments.isEmpty()) {
+                        Toast.makeText(context, "✅ No removable segments found.", Toast.LENGTH_SHORT).show()
+                    } else {
+                        val currentSegments = viewModel.segments.value.orEmpty().toMutableList()
+                        currentSegments.addAll(newSegments)
+                        viewModel.segments.value = currentSegments
+                        playerControlsBinding.exoProgress.setSegments(currentSegments)
+                        playerControlsBinding.sbToggle.isVisible = true
+                        Toast.makeText(context, "🚫 Found ${newSegments.size} removable segment(s) & highlighted on seek bar!", Toast.LENGTH_LONG).show()
+                    }
+                } else {
+                    val err = sbResult.exceptionOrNull()?.message ?: "Unknown scan error"
+                    Toast.makeText(context, "Scan Error: $err", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+
+        // Manual Turso Cloud Sync Action
+        btnTursoSync.setOnClickListener {
+            viewLifecycleOwner.lifecycleScope.launch {
+                val currentText = prefs.getString(videoId, "").orEmpty()
+                if (currentText.isNotBlank()) {
+                    val saved = TursoSyncService.saveTimestamps(requireContext(), videoId, currentText)
+                    if (saved) {
+                        Toast.makeText(context, "Synced to Turso Cloud DB! ☁️", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(context, "Failed to sync to Turso. Check settings.", Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    val loaded = TursoSyncService.loadTimestamps(requireContext(), videoId)
+                    if (!loaded.isNullOrBlank()) {
+                        prefs.edit().putString(videoId, loaded).apply()
+                        loadAndDisplayTimestamps(loaded)
+                        Toast.makeText(context, "Loaded from Turso Cloud DB! ☁️", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(context, "No timestamps found on Turso Cloud DB.", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
     }
 
     override fun getVideoId(): String {

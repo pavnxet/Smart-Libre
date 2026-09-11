@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/sidebar_timestamps_card"
+    android:layout_width="290dp"
+    android:layout_height="match_parent"
+    android:layout_gravity="end"
+    android:clickable="true"
+    android:focusable="true"
+    app:cardBackgroundColor="#E6121212"
+    app:cardCornerRadius="0dp"
+    app:cardElevation="10dp"
+    app:strokeWidth="0dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <!-- Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#22FFFFFF"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="6dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="✨ Smart Chapters"
+                android:textColor="@android:color/white"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <ImageView
+                android:id="@+id/btn_ai_settings"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:padding="6dp"
+                android:src="@drawable/ic_settings"
+                app:tint="@android:color/white" />
+
+            <ImageView
+                android:id="@+id/btn_edit_timestamps"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:padding="6dp"
+                android:src="@drawable/ic_edit"
+                app:tint="@android:color/white" />
+
+            <ImageView
+                android:id="@+id/btn_close_timestamps_sidebar"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:padding="6dp"
+                android:src="@drawable/ic_close"
+                app:tint="@android:color/white" />
+
+        </LinearLayout>
+
+        <!-- Category Filter Chips -->
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="none"
+            android:paddingHorizontal="6dp"
+            android:paddingVertical="4dp">
+
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chip_group_categories"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:singleSelection="true">
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_all"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="32dp"
+                    android:checked="true"
+                    android:text="All"
+                    android:textSize="11sp" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_ques"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="32dp"
+                    android:text="❓ Ques"
+                    android:textSize="11sp" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_ans"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="32dp"
+                    android:text="🎯 Option"
+                    android:textSize="11sp" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_explain"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="32dp"
+                    android:text="💡 Explain"
+                    android:textSize="11sp" />
+
+            </com.google.android.material.chip.ChipGroup>
+
+        </HorizontalScrollView>
+
+        <!-- Action Row: AI Generate, SponsorBlock & Turso Sync -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingHorizontal="6dp"
+            android:paddingBottom="4dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_ai_generate"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_weight="1"
+                android:paddingHorizontal="2dp"
+                android:paddingVertical="0dp"
+                android:text="✨ AI"
+                android:textSize="11sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_ai_sponsorblock"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginStart="4dp"
+                android:layout_weight="1.2"
+                android:paddingHorizontal="2dp"
+                android:paddingVertical="0dp"
+                android:text="🚫 Scan SB"
+                android:textSize="11sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_turso_sync"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginStart="4dp"
+                android:layout_weight="1"
+                android:paddingHorizontal="2dp"
+                android:paddingVertical="0dp"
+                android:text="☁️ Sync"
+                android:textSize="11sp" />
+
+        </LinearLayout>
+
+        <!-- AI Progress Indicator -->
+        <ProgressBar
+            android:id="@+id/pb_ai_loading"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="4dp"
+            android:indeterminate="true"
+            android:visibility="gone" />
+
+        <!-- Edit / Paste Container (Collapsible) -->
+        <LinearLayout
+            android:id="@+id/layout_edit_timestamps"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#1AFFFFFF"
+            android:orientation="vertical"
+            android:padding="8dp"
+            android:visibility="gone">
+
+            <EditText
+                android:id="@+id/et_timestamps_input"
+                android:layout_width="match_parent"
+                android:layout_height="80dp"
+                android:background="#33000000"
+                android:gravity="top|start"
+                android:hint="Paste timestamps e.g.:\n01:23 Intro\n05:40 Chapter 1"
+                android:inputType="textMultiLine"
+                android:padding="6dp"
+                android:textColor="@android:color/white"
+                android:textColorHint="#88FFFFFF"
+                android:textSize="12sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:gravity="end"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_apply_timestamps"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="0dp"
+                    android:text="Apply"
+                    android:textSize="12sp" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Empty state message -->
+        <TextView
+            android:id="@+id/tv_empty_timestamps"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp"
+            android:text="No chapters yet. Click ✨ AI Generate to extract questions or edit manually!"
+            android:textColor="#99FFFFFF"
+            android:textSize="12sp"
+            android:visibility="gone" />
+
+        <!-- Timestamps List -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_timestamps"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:scrollbars="vertical"
+            tools:listitem="@layout/item_timestamp_entry" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

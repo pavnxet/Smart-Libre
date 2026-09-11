@@ -36,14 +36,21 @@ class ChapterTimeBar(
         }
     }
 
+    private var timestampMarkers = listOf<Long>()
+    private val markerDotRadius = 2.5f.dpToPx()
+    private val markerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = 0xFFFFD54F.toInt() // Amber / Gold accent dot for high visibility
+        style = Paint.Style.FILL
+    }
+
     override fun onDraw(canvas: Canvas) {
         val saveCount = canvas.saveLayer(null, null)
         super.onDraw(canvas)
         drawChapters(canvas)
+        drawTimestampMarkers(canvas)
 
         canvas.restoreToCount(saveCount)
     }
-
 
     private fun drawChapters(canvas: Canvas) {
         if (exoPlayer == null) return
@@ -68,11 +75,29 @@ class ChapterTimeBar(
         }
     }
 
+    private fun drawTimestampMarkers(canvas: Canvas) {
+        if (exoPlayer == null || timestampMarkers.isEmpty() || exoPlayer!!.duration <= 0) return
+
+        val horizontalOffset = (parent as View).marginLeft
+        length = width - horizontalOffset * 2
+        val centerY = height / 2f
+
+        timestampMarkers.forEach { ts ->
+            val cx = (ts * 1.0f / exoPlayer!!.duration * length) + horizontalOffset
+            canvas.drawCircle(cx, centerY, markerDotRadius.toFloat(), markerPaint)
+        }
+    }
+
     private fun Long.toLength(): Int {
         return (this * 1000f / exoPlayer!!.duration * length).toInt()
     }
 
     fun setChapters(chapters: List<ChapterSegment>) {
         this.chapters = chapters
+    }
+
+    fun setTimestampMarkers(markers: List<Long>) {
+        this.timestampMarkers = markers
+        invalidate()
     }
 }
