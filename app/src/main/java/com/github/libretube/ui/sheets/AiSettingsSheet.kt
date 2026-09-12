@@ -44,6 +44,9 @@ class AiSettingsSheet : BottomSheetDialogFragment() {
         binding.etTursoUrl.setText(tursoPrefs.getString(TursoSyncService.KEY_TURSO_URL, ""))
         binding.etTursoToken.setText(tursoPrefs.getString(TursoSyncService.KEY_TURSO_TOKEN, ""))
 
+        val currentSbUserId = com.github.libretube.helpers.PreferenceHelper.getSponsorBlockUserID()
+        binding.etSbUserId.setText(currentSbUserId)
+
         binding.btnSaveSettings.setOnClickListener {
             val provider = if (binding.rbOpenrouter.isChecked) "openrouter" else "aikit"
             val transcriptApiKey = binding.etTranscriptApiKey.text?.toString().orEmpty().trim()
@@ -53,6 +56,14 @@ class AiSettingsSheet : BottomSheetDialogFragment() {
 
             val tursoUrl = binding.etTursoUrl.text?.toString().orEmpty().trim()
             val tursoToken = binding.etTursoToken.text?.toString().orEmpty().trim()
+
+            val customSbUserId = binding.etSbUserId.text?.toString().orEmpty().trim()
+            if (customSbUserId.isNotEmpty()) {
+                com.github.libretube.helpers.PreferenceHelper.putString(
+                    com.github.libretube.constants.PreferenceKeys.SB_USER_ID,
+                    customSbUserId
+                )
+            }
 
             aiPrefs.edit()
                 .putString(TranscriptHelper.KEY_TRANSCRIPT_API_KEY, transcriptApiKey)

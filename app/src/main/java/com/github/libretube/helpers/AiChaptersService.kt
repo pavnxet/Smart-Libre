@@ -255,11 +255,12 @@ $transcript
             return@withContext Result.success(emptyList())
         }
 
-        val segments = parseRemovableSegments(output, videoDurationSec)
+        val sbUserId = com.github.libretube.helpers.PreferenceHelper.getSponsorBlockUserID()
+        val segments = parseRemovableSegments(output, videoDurationSec, sbUserId)
         Result.success(segments)
     }
 
-    private fun parseRemovableSegments(text: String, videoDurationSec: Double): List<com.github.libretube.api.obj.Segment> {
+    private fun parseRemovableSegments(text: String, videoDurationSec: Double, userId: String): List<com.github.libretube.api.obj.Segment> {
         val result = mutableListOf<com.github.libretube.api.obj.Segment>()
         val intervalRegex = Regex("\\[?(\\d{1,2}(?::\\d{2}){1,2})\\]?\\s*-\\s*\\[?(\\d{1,2}(?::\\d{2}){1,2})\\]?\\s*(\\w*)")
 
@@ -292,7 +293,7 @@ $transcript
                             description = "AI Detected $cat",
                             locked = 0,
                             segment = listOf(startSec, endSec),
-                            userID = "ai_scanner",
+                            userID = userId,
                             videoDuration = videoDurationSec,
                             votes = 1
                         )

@@ -1761,7 +1761,47 @@ class PlayerFragment : Fragment(R.layout.fragment_player), CustomPlayerCallback 
                         viewModel.segments.value = currentSegments
                         playerControlsBinding.exoProgress.setSegments(currentSegments)
                         playerControlsBinding.sbToggle.isVisible = true
-                        Toast.makeText(context, "🚫 Found ${newSegments.size} removable segment(s) & highlighted on seek bar!", Toast.LENGTH_LONG).show()
+
+                        val sbUserId = com.github.libretube.helpers.PreferenceHelper.getSponsorBlockUserID()
+                        val shortUserId = if (sbUserId.length > 8) sbUserId.take(8) + "..." else sbUserId
+
+                        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                            .setTitle("🚫 SponsorBlock Segments Found")
+                            .setMessage("AI identified ${newSegments.size} removable segment(s) and marked them on the seek bar.\n\nWould you like to upload these segments to the official SponsorBlock server?\n\nUser ID: $shortUserId")
+                            .setPositiveButton("🚀 Upload to SB") { _, _ ->
+                                viewLifecycleOwner.lifecycleScope.launch {
+                                    Toast.makeText(context, "Uploading ${newSegments.size} segment(s) to SponsorBlock...", Toast.LENGTH_SHORT).show()
+                                    var successCount = 0
+                                    val userAgent = com.github.libretube.util.TextUtils.getUserAgent(requireContext())
+
+                                    withContext(Dispatchers.IO) {
+                                        for (seg in newSegments) {
+                                            try {
+                                                com.github.libretube.api.RetrofitInstance.externalApi.submitSegment(
+                                                    videoId = videoId,
+                                                    userID = sbUserId,
+                                                    userAgent = userAgent,
+                                                    startTime = seg.segmentStartAndEnd.first,
+                                                    endTime = seg.segmentStartAndEnd.second,
+                                                    category = seg.category,
+                                                    duration = streams.duration.toFloat()
+                                                )
+                                                successCount++
+                                            } catch (e: Exception) {
+                                                e.printStackTrace()
+                                            }
+                                        }
+                                    }
+
+                                    if (successCount > 0) {
+                                        Toast.makeText(context, "🎉 Successfully uploaded $successCount segment(s) to SponsorBlock!", Toast.LENGTH_LONG).show()
+                                    } else {
+                                        Toast.makeText(context, "Failed to upload segments to SponsorBlock (may already exist or server error).", Toast.LENGTH_LONG).show()
+                                    }
+                                }
+                            }
+                            .setNegativeButton("Keep Local Only", null)
+                            .show()
                     }
                 } else {
                     val err = sbResult.exceptionOrNull()?.message ?: "Unknown scan error"

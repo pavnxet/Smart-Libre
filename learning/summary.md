@@ -55,5 +55,27 @@
   - `versionCode`: 72 -> 73
   - `versionName`: "32.1" -> "32.2"
 - Successfully compiled and built Debug APK: `E:\Codes\Testing\LibreTube\app\build\outputs\apk\debug\app-debug.apk`.
+## Session 2026-09-11 (Smart Libre Brand, Zero Secrets, New GitHub Repo & Release v1.0.0)
+- Renamed application to "Smart Libre" (`Smart Libre Debug` for debug build).
+- Sanitized 100% of hardcoded API keys: removed literal keys from `TranscriptHelper.kt`, `dialog_ai_settings.xml`, and session docs. Zero secrets confirmed via deep grep.
+- Changed app version to independent custom line:
+  - `versionCode`: 10001
+  - `versionName`: "1.0.0-smartchapters"
+- Built signed, R8-optimized production Release APK: `SmartLibre-v1.0.0.apk` (Size: 8.88 MB).
+- Created brand new public repository on GitHub: `https://github.com/pavnxet/Smart-Libre`.
+- Pushed full codebase to `smartlibre/master`.
+- Published official GitHub Release `v1.0.0` with `SmartLibre-v1.0.0.apk` asset attached.
+## Session 2026-09-12 (Custom SponsorBlock User ID & Release v1.0.1 - Fixes #1)
+- Added SponsorBlock User ID input to `dialog_ai_settings.xml` and wired to `PreferenceHelper.getSponsorBlockUserID()` in `AiSettingsSheet.kt`.
+- Updated `AiChaptersService.kt` to bind the user's custom User ID to all AI-scanned segments.
+- Added direct SponsorBlock upload confirmation dialog to `PlayerFragment.kt` after scanning segments.
+- Bumped app version in `app/build.gradle.kts`:
+  - `versionCode`: 10001 -> 10002
+  - `versionName`: "1.0.0-smartchapters" -> "1.0.1-smartchapters"
+- Built signed production Release APK: `SmartLibre-v1.0.1.apk`.
+- Pushed changes to GitHub repository `pavnxet/Smart-Libre` and published Release `v1.0.1`.
+- Closed Issue #1.
+
+
 
 

@@ -34,8 +34,8 @@ android {
         applicationId = "com.github.libretube"
         minSdk = 26
         targetSdk = 36
-        versionCode = 10001
-        versionName = "1.0.0-smartchapters"
+        versionCode = 10002
+        versionName = "1.0.1-smartchapters"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         resValue("string", "app_name", "Smart Libre")
     }
