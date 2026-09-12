@@ -210,7 +210,65 @@ $chunk
             return@withContext Result.failure(Exception("AI Token / API Key is missing. Configure it in AI Settings (⚙️)."))
         }
 
-        val prompt = """
+        val lines = transcript.lines()
+        var maxSec = 0L
+        for (line in lines) {
+            val matcher = TS_REGEX.matcher(line)
+            if (matcher.find()) {
+                val sec = parseSec(matcher.group(1) ?: "")
+                if (sec > maxSec) maxSec = sec
+            }
+        }
+
+        val sbUserId = com.github.libretube.helpers.PreferenceHelper.getSponsorBlockUserID()
+        val chunkDuration = 1800L // 30 mins
+        if (maxSec > chunkDuration + 180) {
+            val totalChunks = Math.ceil(maxSec.toDouble() / chunkDuration).toInt()
+            val timeChunks = Array(totalChunks) { mutableListOf<String>() }
+            for (line in lines) {
+                val matcher = TS_REGEX.matcher(line)
+                if (matcher.find()) {
+                    val sec = parseSec(matcher.group(1) ?: "")
+                    val bucket = Math.min(totalChunks - 1, (sec / chunkDuration).toInt())
+                    timeChunks[bucket].add(line)
+                }
+            }
+
+            val validChunks = timeChunks.map { it.joinToString("\n") }.filter { it.isNotBlank() }
+            val accumulatedSegments = mutableListOf<com.github.libretube.api.obj.Segment>()
+
+            for (chunk in validChunks) {
+                val prompt = buildRemovablePrompt(chunk)
+                val aiResult = executePrompt(prompt, provider, token, model, baseUrl)
+                if (aiResult.isSuccess) {
+                    val output = aiResult.getOrNull().orEmpty()
+                    if (!output.contains("NO REMOVABLE SEGMENTS FOUND", ignoreCase = true)) {
+                        val parsed = parseRemovableSegments(output, videoDurationSec, sbUserId)
+                        accumulatedSegments.addAll(parsed)
+                    }
+                }
+            }
+
+            return@withContext Result.success(accumulatedSegments)
+        }
+
+        val prompt = buildRemovablePrompt(transcript)
+        val aiResult = executePrompt(prompt, provider, token, model, baseUrl)
+        if (aiResult.isFailure) {
+            return@withContext Result.failure(aiResult.exceptionOrNull() ?: Exception("AI scan failed"))
+        }
+
+        val output = aiResult.getOrNull().orEmpty()
+        if (output.contains("NO REMOVABLE SEGMENTS FOUND", ignoreCase = true)) {
+            return@withContext Result.success(emptyList())
+        }
+
+        val segments = parseRemovableSegments(output, videoDurationSec, sbUserId)
+        Result.success(segments)
+    }
+
+    private fun buildRemovablePrompt(transcriptChunk: String): String {
+        return """
 You are an expert educational video transcript analyst and timestamp extraction specialist.
 Analyze the following timestamped video transcript. Identify portions that should be REMOVED from the educational content because they are:
 1. SPONSOR / ADVERTISEMENT
@@ -242,22 +300,8 @@ If NO removable segments are found, return:
 NO REMOVABLE SEGMENTS FOUND
 
 Transcript:
-$transcript
+$transcriptChunk
 """.trimIndent()
-
-        val aiResult = executePrompt(prompt, provider, token, model, baseUrl)
-        if (aiResult.isFailure) {
-            return@withContext Result.failure(aiResult.exceptionOrNull() ?: Exception("AI scan failed"))
-        }
-
-        val output = aiResult.getOrNull().orEmpty()
-        if (output.contains("NO REMOVABLE SEGMENTS FOUND", ignoreCase = true)) {
-            return@withContext Result.success(emptyList())
-        }
-
-        val sbUserId = com.github.libretube.helpers.PreferenceHelper.getSponsorBlockUserID()
-        val segments = parseRemovableSegments(output, videoDurationSec, sbUserId)
-        Result.success(segments)
     }
 
     private fun parseRemovableSegments(text: String, videoDurationSec: Double, userId: String): List<com.github.libretube.api.obj.Segment> {

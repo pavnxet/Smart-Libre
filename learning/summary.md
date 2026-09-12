@@ -76,6 +76,17 @@
 - Pushed changes to GitHub repository `pavnxet/Smart-Libre` and published Release `v1.0.1`.
 - Closed Issue #1.
 
+## Session 2026-09-12 (30-Minute Safe Chunking for AI SponsorBlock & Release v1.0.2)
+- Added sequential 30-minute time-bucket chunking to `analyzeRemovableSegments()` in `AiChaptersService.kt`.
+- Transcripts exceeding 30 minutes are now divided into bucketed slices to protect from LLM API context timeouts and rate limiting.
+- Segments from all sequential chunks are merged and deduplicated.
+- Bumped app version in `app/build.gradle.kts`:
+  - `versionCode`: 10002 -> 10003
+  - `versionName`: "1.0.1-smartchapters" -> "1.0.2-smartchapters"
+- Built signed production Release APK: `SmartLibre-v1.0.2.apk`.
+- Pushed changes to GitHub repository `pavnxet/Smart-Libre` and published Release `v1.0.2`.
+
+
 
 
 
