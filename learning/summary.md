@@ -104,6 +104,20 @@
 - Built signed production Release APK: `SmartLibre-v1.0.3.apk`.
 - Pushed changes to GitHub repository `pavnxet/Smart-Libre` and published Release `v1.0.3`.
 
+## Session 2026-09-26 (API Chat Refresh Button & Out-of-Band Thread Isolation Protocol v1.0.4)
+- Implemented Out-of-Band New-Chat Synchronization Protocol (NBCP) into `AiChaptersService.kt`:
+  - Added `triggerNewChat(context)` method targeting local signaling relays (`/api/trigger-new-chat`, `/trigger-new-chat`) and ApiBeam endpoints directly (`/new-chat`, `/reset`).
+  - Added configurable `KEY_RELAY_URL` (`DEFAULT_RELAY_URL = "http://localhost:3000"`).
+- Added in-player chat refresh button (`btn_refresh_ai_chat`, `ic_refresh.xml`) to `view_timestamps_sidebar.xml` right next to settings and edit icons.
+- Added "🔄 Refresh / Start New Chat on Web" button and relay URL field in `AiSettingsSheet.kt` and `dialog_ai_settings.xml`.
+- Connected instant user notifications and fallback handling when signaling new chat sessions.
+- Bumped app version in `app/build.gradle.kts`:
+  - `versionCode`: 10004 -> 10005
+  - `versionName`: "1.0.3-smartchapters" -> "1.0.4-smartchapters"
+- Built signed production Release APK: `SmartLibre-v1.0.4.apk`.
+- Pushed changes to GitHub repository `pavnxet/Smart-Libre` and published Release `v1.0.4`.
+
+
 
 
 

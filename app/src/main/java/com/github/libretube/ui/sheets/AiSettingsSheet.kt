@@ -7,12 +7,14 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.view.isVisible
+import androidx.lifecycle.lifecycleScope
 import com.github.libretube.databinding.DialogAiSettingsBinding
 import com.github.libretube.helpers.AiChaptersService
 import com.github.libretube.helpers.SoundHelper
 import com.github.libretube.helpers.TranscriptHelper
 import com.github.libretube.helpers.TursoSyncService
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import kotlinx.coroutines.launch
 
 class AiSettingsSheet : BottomSheetDialogFragment() {
     private var _binding: DialogAiSettingsBinding? = null
@@ -41,6 +43,8 @@ class AiSettingsSheet : BottomSheetDialogFragment() {
             val isOpenRouter = provider == AiChaptersService.PROVIDER_OPENROUTER
 
             binding.tilApibeamUrl.isVisible = isApiBeam
+            binding.tilRelayUrl.isVisible = isApiBeam
+            binding.btnTriggerNewChat.isVisible = isApiBeam
             if (isApiBeam) {
                 binding.tilAiToken.hint = "AI API Token (Optional for ApiBeam)"
                 binding.tilAiModel.hint = "Model (default: gpt-4)"
@@ -68,9 +72,22 @@ class AiSettingsSheet : BottomSheetDialogFragment() {
         binding.etTranscriptApiKey.setText(savedTranscriptKey)
 
         binding.etApibeamUrl.setText(aiPrefs.getString(AiChaptersService.KEY_APIBEAM_URL, AiChaptersService.DEFAULT_APIBEAM_URL))
+        binding.etRelayUrl.setText(aiPrefs.getString(AiChaptersService.KEY_RELAY_URL, AiChaptersService.DEFAULT_RELAY_URL))
         binding.etAiToken.setText(aiPrefs.getString(AiChaptersService.KEY_AI_TOKEN, ""))
         binding.etAiModel.setText(aiPrefs.getString(AiChaptersService.KEY_AI_MODEL, ""))
         binding.swSoundEnabled.isChecked = aiPrefs.getBoolean(AiChaptersService.KEY_SOUND_ENABLED, true)
+
+        binding.btnTriggerNewChat.setOnClickListener {
+            viewLifecycleOwner.lifecycleScope.launch {
+                val res = AiChaptersService.triggerNewChat(requireContext())
+                if (res.isSuccess) {
+                    Toast.makeText(context, "⚡ Clean new chat triggered on web browser!", Toast.LENGTH_SHORT).show()
+                } else {
+                    val err = res.exceptionOrNull()?.message ?: "Failed to signal relay"
+                    Toast.makeText(context, "Relay Notice: $err", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
 
         binding.btnTestSound.setOnClickListener {
             SoundHelper.playAnimeWow(requireContext())
@@ -91,6 +108,7 @@ class AiSettingsSheet : BottomSheetDialogFragment() {
             }
             val transcriptApiKey = binding.etTranscriptApiKey.text?.toString().orEmpty().trim()
             val apibeamUrl = binding.etApibeamUrl.text?.toString().orEmpty().trim()
+            val relayUrl = binding.etRelayUrl.text?.toString().orEmpty().trim()
             val aiToken = binding.etAiToken.text?.toString().orEmpty().trim()
             val aiModel = binding.etAiModel.text?.toString().orEmpty().trim()
             val soundEnabled = binding.swSoundEnabled.isChecked
@@ -110,6 +128,7 @@ class AiSettingsSheet : BottomSheetDialogFragment() {
                 .putString(TranscriptHelper.KEY_TRANSCRIPT_API_KEY, transcriptApiKey)
                 .putString(AiChaptersService.KEY_AI_PROVIDER, provider)
                 .putString(AiChaptersService.KEY_APIBEAM_URL, apibeamUrl)
+                .putString(AiChaptersService.KEY_RELAY_URL, relayUrl)
                 .putString(AiChaptersService.KEY_AI_TOKEN, aiToken)
                 .putString(AiChaptersService.KEY_AI_MODEL, aiModel)
                 .putBoolean(AiChaptersService.KEY_SOUND_ENABLED, soundEnabled)

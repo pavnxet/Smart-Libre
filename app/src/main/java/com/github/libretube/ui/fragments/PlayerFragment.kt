@@ -1488,6 +1488,7 @@ class PlayerFragment : Fragment(R.layout.fragment_player), CustomPlayerCallback 
         val sidebarRoot = sidebar.root
         val rvTimestamps = sidebar.rvTimestamps
         val btnAiSettings = sidebar.btnAiSettings
+        val btnRefreshAiChat = sidebar.btnRefreshAiChat
         val btnEdit = sidebar.btnEditTimestamps
         val btnClose = sidebar.btnCloseTimestampsSidebar
         val layoutEdit = sidebar.layoutEditTimestamps
@@ -1643,6 +1644,20 @@ class PlayerFragment : Fragment(R.layout.fragment_player), CustomPlayerCallback 
         // AI Settings Sheet
         btnAiSettings.setOnClickListener {
             AiSettingsSheet().show(childFragmentManager, "AiSettingsSheet")
+        }
+
+        // Refresh / Start New Chat on Web Browser (ApiBeam thread isolation)
+        btnRefreshAiChat.setOnClickListener {
+            viewLifecycleOwner.lifecycleScope.launch {
+                Toast.makeText(context, "🔄 Signaling new chat to web relay...", Toast.LENGTH_SHORT).show()
+                val res = AiChaptersService.triggerNewChat(requireContext())
+                if (res.isSuccess) {
+                    Toast.makeText(context, "⚡ Clean new chat triggered on web browser!", Toast.LENGTH_SHORT).show()
+                } else {
+                    val err = res.exceptionOrNull()?.message ?: "Failed to signal relay"
+                    Toast.makeText(context, "Relay Notice: $err", Toast.LENGTH_LONG).show()
+                }
+            }
         }
 
         // Toggle sidebar from player top bar button

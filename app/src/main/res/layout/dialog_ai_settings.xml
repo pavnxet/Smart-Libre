@@ -78,7 +78,6 @@
 
         </RadioGroup>
 
-        <!-- Dynamic ApiBeam Base URL -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/til_apibeam_url"
             style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
@@ -95,6 +94,33 @@
                 android:inputType="textUri" />
 
         </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- New Chat Signaling Relay URL for In-Page ChatGPT agent -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/til_relay_url"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:hint="Local Signaling Relay (default: http://localhost:3000)"
+            android:visibility="gone">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_relay_url"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textUri" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_trigger_new_chat"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="🔄 Refresh / Start New Chat on Web"
+            android:visibility="gone" />
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/til_ai_token"

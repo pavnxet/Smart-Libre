@@ -30,6 +30,8 @@ object AiChaptersService {
     const val DEFAULT_OPENROUTER_MODEL = "google/gemma-4-31b-it:free"
     const val DEFAULT_APIBEAM_URL = "https://apibeam.bitsmall.in/app/6nw4ib05qo9exuty6t8sib"
     const val DEFAULT_APIBEAM_MODEL = "gpt-4"
+    const val KEY_RELAY_URL = "apibeam_relay_url"
+    const val DEFAULT_RELAY_URL = "http://localhost:3000"
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(60, TimeUnit.SECONDS)
@@ -513,5 +515,53 @@ $transcriptChunk
             1 -> parts[0]
             else -> 0L
         }
+    }
+
+    /**
+     * Out-of-Band New-Chat Synchronization Protocol (NBCP)
+     * Triggers a fresh chat conversation on ChatGPT web client via local/remote signaling relay
+     * or via ApiBeam endpoint directly.
+     */
+    suspend fun triggerNewChat(context: Context): Result<String> = withContext(Dispatchers.IO) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val relayUrl = prefs.getString(KEY_RELAY_URL, DEFAULT_RELAY_URL)?.trim().orEmpty()
+        val apibeamUrl = prefs.getString(KEY_APIBEAM_URL, DEFAULT_APIBEAM_URL)?.trim().orEmpty()
+
+        val cleanRelay = relayUrl.trimEnd('/')
+        val endpointsToTry = mutableListOf<String>()
+
+        if (cleanRelay.isNotEmpty()) {
+            endpointsToTry.add(if (cleanRelay.endsWith("/api/trigger-new-chat")) cleanRelay else "$cleanRelay/api/trigger-new-chat")
+            endpointsToTry.add(if (cleanRelay.endsWith("/trigger-new-chat")) cleanRelay else "$cleanRelay/trigger-new-chat")
+        }
+
+        val cleanApiBeam = apibeamUrl.trimEnd('/')
+        if (cleanApiBeam.isNotEmpty()) {
+            endpointsToTry.add(if (cleanApiBeam.endsWith("/api/trigger-new-chat")) cleanApiBeam else "$cleanApiBeam/api/trigger-new-chat")
+            endpointsToTry.add(if (cleanApiBeam.endsWith("/trigger-new-chat")) cleanApiBeam else "$cleanApiBeam/trigger-new-chat")
+            endpointsToTry.add(if (cleanApiBeam.endsWith("/new-chat")) cleanApiBeam else "$cleanApiBeam/new-chat")
+            endpointsToTry.add(if (cleanApiBeam.endsWith("/reset")) cleanApiBeam else "$cleanApiBeam/reset")
+        }
+
+        var lastError: Exception? = null
+        for (targetUrl in endpointsToTry) {
+            try {
+                val emptyBody = "".toRequestBody("application/json".toMediaType())
+                val request = Request.Builder()
+                    .url(targetUrl)
+                    .post(emptyBody)
+                    .build()
+
+                val response = client.newCall(request).execute()
+                val respStr = response.body?.string() ?: ""
+                if (response.isSuccessful) {
+                    return@withContext Result.success("New chat signal sent to: $targetUrl")
+                }
+            } catch (e: Exception) {
+                lastError = e
+            }
+        }
+
+        Result.failure(lastError ?: Exception("Could not connect to signaling relay. Make sure your local relay or server is running at $relayUrl"))
     }
 }
