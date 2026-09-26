@@ -14,15 +14,22 @@ import java.util.regex.Pattern
 
 object AiChaptersService {
     private const val PREFS_NAME = "smart_chapters_ai_prefs"
-    const val KEY_AI_PROVIDER = "ai_provider" // "aikit" or "openrouter"
+    const val KEY_AI_PROVIDER = "ai_provider" // "aikit", "openrouter", or "apibeam"
     const val KEY_AI_TOKEN = "ai_token"
     const val KEY_AI_BASE_URL = "ai_base_url"
     const val KEY_AI_MODEL = "ai_model"
     const val KEY_SOUND_ENABLED = "sound_enabled"
+    const val KEY_APIBEAM_URL = "apibeam_url"
+
+    const val PROVIDER_AIKIT = "aikit"
+    const val PROVIDER_OPENROUTER = "openrouter"
+    const val PROVIDER_APIBEAM = "apibeam"
 
     const val DEFAULT_AIKIT_URL = "https://claude.aikit.club/qwen.aikit.club/v1"
     const val DEFAULT_AIKIT_MODEL = "qwen3.8-max"
     const val DEFAULT_OPENROUTER_MODEL = "google/gemma-4-31b-it:free"
+    const val DEFAULT_APIBEAM_URL = "https://apibeam.bitsmall.in/app/6nw4ib05qo9exuty6t8sib"
+    const val DEFAULT_APIBEAM_MODEL = "gpt-4"
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(60, TimeUnit.SECONDS)
@@ -34,13 +41,22 @@ object AiChaptersService {
 
     suspend fun generateChapters(context: Context, transcript: String): Result<String> = withContext(Dispatchers.IO) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val provider = prefs.getString(KEY_AI_PROVIDER, "aikit") ?: "aikit"
+        val provider = prefs.getString(KEY_AI_PROVIDER, PROVIDER_AIKIT) ?: PROVIDER_AIKIT
         val token = prefs.getString(KEY_AI_TOKEN, "")?.trim().orEmpty()
-        val model = prefs.getString(KEY_AI_MODEL, if (provider == "openrouter") DEFAULT_OPENROUTER_MODEL else DEFAULT_AIKIT_MODEL)?.trim().orEmpty()
+        val apibeamUrl = prefs.getString(KEY_APIBEAM_URL, DEFAULT_APIBEAM_URL)?.trim().orEmpty()
+        val model = prefs.getString(KEY_AI_MODEL, when (provider) {
+            PROVIDER_OPENROUTER -> DEFAULT_OPENROUTER_MODEL
+            PROVIDER_APIBEAM -> DEFAULT_APIBEAM_MODEL
+            else -> DEFAULT_AIKIT_MODEL
+        })?.trim().orEmpty()
         val baseUrl = prefs.getString(KEY_AI_BASE_URL, DEFAULT_AIKIT_URL)?.trim().orEmpty()
 
-        if (token.isEmpty()) {
+        if (provider != PROVIDER_APIBEAM && token.isEmpty()) {
             return@withContext Result.failure(Exception("AI Token / API Key is missing. Configure it in AI Settings (⚙️)."))
+        }
+
+        if (provider == PROVIDER_APIBEAM && apibeamUrl.isEmpty()) {
+            return@withContext Result.failure(Exception("ApiBeam URL is empty. Please enter your active ApiBeam endpoint in AI Settings (⚙️)."))
         }
 
         val lines = transcript.lines()
@@ -70,7 +86,7 @@ object AiChaptersService {
             val tableRows = mutableListOf<String>()
 
             for (chunk in validChunks) {
-                val chunkResult = callAi(chunk, provider, token, model, baseUrl)
+                val chunkResult = callAi(chunk, provider, token, model, baseUrl, apibeamUrl)
                 if (chunkResult.isSuccess) {
                     val output = chunkResult.getOrNull().orEmpty()
                     for (l in output.lines()) {
@@ -96,10 +112,10 @@ object AiChaptersService {
             }
         }
 
-        return@withContext callAi(transcript, provider, token, model, baseUrl)
+        return@withContext callAi(transcript, provider, token, model, baseUrl, apibeamUrl)
     }
 
-    private fun callAi(chunk: String, provider: String, token: String, model: String, baseUrl: String): Result<String> {
+    private fun callAi(chunk: String, provider: String, token: String, model: String, baseUrl: String, apibeamUrl: String): Result<String> {
         val prompt = """
 You are an expert educational content analyzer specialized in exam preparation and live MCQ video lectures.
 Analyze the following timestamped video transcript. Identify every distinct multiple-choice question (MCQ), question practice session, or problem solving item.
@@ -125,7 +141,36 @@ $chunk
 """.trimIndent()
 
         return try {
-            if (provider == "openrouter") {
+            if (provider == PROVIDER_APIBEAM) {
+                val cleanBase = apibeamUrl.trimEnd('/')
+                val url = if (cleanBase.endsWith("/chat/completions")) cleanBase else "$cleanBase/chat/completions"
+                val bodyJson = JSONObject().apply {
+                    put("model", model.ifEmpty { DEFAULT_APIBEAM_MODEL })
+                    put("messages", JSONArray().apply {
+                        put(JSONObject().apply {
+                            put("role", "user")
+                            put("content", prompt)
+                        })
+                    })
+                    put("temperature", 0.7)
+                }
+                val requestBuilder = Request.Builder()
+                    .url(url)
+                    .addHeader("Content-Type", "application/json")
+                    .post(bodyJson.toString().toRequestBody("application/json".toMediaType()))
+
+                if (token.isNotEmpty()) {
+                    requestBuilder.addHeader("Authorization", "Bearer $token")
+                }
+
+                val response = client.newCall(requestBuilder.build()).execute()
+                val respStr = response.body?.string() ?: ""
+                if (!response.isSuccessful) return Result.failure(Exception("ApiBeam Error (${response.code}): $respStr"))
+
+                val json = JSONObject(respStr)
+                val content = json.getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content")
+                Result.success(content.trim())
+            } else if (provider == PROVIDER_OPENROUTER) {
                 val url = "https://openrouter.ai/api/v1/chat/completions"
                 val bodyJson = JSONObject().apply {
                     put("model", model.ifEmpty { DEFAULT_OPENROUTER_MODEL })
@@ -201,13 +246,22 @@ $chunk
         videoDurationSec: Double
     ): Result<List<com.github.libretube.api.obj.Segment>> = withContext(Dispatchers.IO) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val provider = prefs.getString(KEY_AI_PROVIDER, "aikit") ?: "aikit"
+        val provider = prefs.getString(KEY_AI_PROVIDER, PROVIDER_AIKIT) ?: PROVIDER_AIKIT
         val token = prefs.getString(KEY_AI_TOKEN, "")?.trim().orEmpty()
-        val model = prefs.getString(KEY_AI_MODEL, if (provider == "openrouter") DEFAULT_OPENROUTER_MODEL else DEFAULT_AIKIT_MODEL)?.trim().orEmpty()
+        val apibeamUrl = prefs.getString(KEY_APIBEAM_URL, DEFAULT_APIBEAM_URL)?.trim().orEmpty()
+        val model = prefs.getString(KEY_AI_MODEL, when (provider) {
+            PROVIDER_OPENROUTER -> DEFAULT_OPENROUTER_MODEL
+            PROVIDER_APIBEAM -> DEFAULT_APIBEAM_MODEL
+            else -> DEFAULT_AIKIT_MODEL
+        })?.trim().orEmpty()
         val baseUrl = prefs.getString(KEY_AI_BASE_URL, DEFAULT_AIKIT_URL)?.trim().orEmpty()
 
-        if (token.isEmpty()) {
+        if (provider != PROVIDER_APIBEAM && token.isEmpty()) {
             return@withContext Result.failure(Exception("AI Token / API Key is missing. Configure it in AI Settings (⚙️)."))
+        }
+
+        if (provider == PROVIDER_APIBEAM && apibeamUrl.isEmpty()) {
+            return@withContext Result.failure(Exception("ApiBeam URL is empty. Please enter your active ApiBeam endpoint in AI Settings (⚙️)."))
         }
 
         val lines = transcript.lines()
@@ -239,7 +293,7 @@ $chunk
 
             for (chunk in validChunks) {
                 val prompt = buildRemovablePrompt(chunk)
-                val aiResult = executePrompt(prompt, provider, token, model, baseUrl)
+                val aiResult = executePrompt(prompt, provider, token, model, baseUrl, apibeamUrl)
                 if (aiResult.isSuccess) {
                     val output = aiResult.getOrNull().orEmpty()
                     if (!output.contains("NO REMOVABLE SEGMENTS FOUND", ignoreCase = true)) {
@@ -253,7 +307,7 @@ $chunk
         }
 
         val prompt = buildRemovablePrompt(transcript)
-        val aiResult = executePrompt(prompt, provider, token, model, baseUrl)
+        val aiResult = executePrompt(prompt, provider, token, model, baseUrl, apibeamUrl)
         if (aiResult.isFailure) {
             return@withContext Result.failure(aiResult.exceptionOrNull() ?: Exception("AI scan failed"))
         }
@@ -348,9 +402,38 @@ $transcriptChunk
         return result
     }
 
-    private fun executePrompt(prompt: String, provider: String, token: String, model: String, baseUrl: String): Result<String> {
+    private fun executePrompt(prompt: String, provider: String, token: String, model: String, baseUrl: String, apibeamUrl: String): Result<String> {
         return try {
-            if (provider == "openrouter") {
+            if (provider == PROVIDER_APIBEAM) {
+                val cleanBase = apibeamUrl.trimEnd('/')
+                val url = if (cleanBase.endsWith("/chat/completions")) cleanBase else "$cleanBase/chat/completions"
+                val bodyJson = JSONObject().apply {
+                    put("model", model.ifEmpty { DEFAULT_APIBEAM_MODEL })
+                    put("messages", JSONArray().apply {
+                        put(JSONObject().apply {
+                            put("role", "user")
+                            put("content", prompt)
+                        })
+                    })
+                    put("temperature", 0.7)
+                }
+                val requestBuilder = Request.Builder()
+                    .url(url)
+                    .addHeader("Content-Type", "application/json")
+                    .post(bodyJson.toString().toRequestBody("application/json".toMediaType()))
+
+                if (token.isNotEmpty()) {
+                    requestBuilder.addHeader("Authorization", "Bearer $token")
+                }
+
+                val response = client.newCall(requestBuilder.build()).execute()
+                val respStr = response.body?.string() ?: ""
+                if (!response.isSuccessful) return Result.failure(Exception("ApiBeam Error (${response.code}): $respStr"))
+
+                val json = JSONObject(respStr)
+                val content = json.getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content")
+                Result.success(content.trim())
+            } else if (provider == PROVIDER_OPENROUTER) {
                 val url = "https://openrouter.ai/api/v1/chat/completions"
                 val bodyJson = JSONObject().apply {
                     put("model", model.ifEmpty { DEFAULT_OPENROUTER_MODEL })

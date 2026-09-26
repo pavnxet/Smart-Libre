@@ -1705,13 +1705,7 @@ class PlayerFragment : Fragment(R.layout.fragment_player), CustomPlayerCallback 
                     // Play Anime Wow completion sound if enabled
                     val aiPrefs = requireContext().getSharedPreferences("smart_chapters_ai_prefs", Context.MODE_PRIVATE)
                     if (aiPrefs.getBoolean(AiChaptersService.KEY_SOUND_ENABLED, true)) {
-                        try {
-                            val mp = MediaPlayer.create(requireContext(), R.raw.anime_wow)
-                            mp?.setOnCompletionListener { it.release() }
-                            mp?.start()
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
+                        com.github.libretube.helpers.SoundHelper.playAnimeWow(requireContext())
                     }
 
                     // Auto-sync generated timestamps to Turso Cloud DB
@@ -1752,6 +1746,11 @@ class PlayerFragment : Fragment(R.layout.fragment_player), CustomPlayerCallback 
                 btnAiSponsorblock.isEnabled = true
 
                 if (sbResult.isSuccess) {
+                    val aiPrefs = requireContext().getSharedPreferences("smart_chapters_ai_prefs", Context.MODE_PRIVATE)
+                    if (aiPrefs.getBoolean(AiChaptersService.KEY_SOUND_ENABLED, true)) {
+                        com.github.libretube.helpers.SoundHelper.playAnimeWow(requireContext())
+                    }
+
                     val newSegments = sbResult.getOrNull().orEmpty()
                     if (newSegments.isEmpty()) {
                         Toast.makeText(context, "✅ No removable segments found.", Toast.LENGTH_SHORT).show()

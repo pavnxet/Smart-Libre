@@ -86,6 +86,25 @@
 - Built signed production Release APK: `SmartLibre-v1.0.2.apk`.
 - Pushed changes to GitHub repository `pavnxet/Smart-Libre` and published Release `v1.0.2`.
 
+## Session 2026-09-26 (ApiBeam Dynamic API Integration & Anime Wow Audio Engine Fix v1.0.3)
+- Integrated ApiBeam provider (`PROVIDER_APIBEAM`) into `AiChaptersService.kt`:
+  - Added support for customizable dynamic base URLs (`KEY_APIBEAM_URL`), supporting active time-based relay room endpoints.
+  - Implemented standard OpenAI Chat Completions protocol (`/chat/completions`) with optional token handling.
+  - Sliced educational MCQs and 30-min chunked SponsorBlock scanning directly through ApiBeam browser relay.
+- Fixed Anime Wow completion sound:
+  - Created `SoundHelper.kt` utilizing explicit `AudioAttributes` (`USAGE_MEDIA` / `CONTENT_TYPE_SONIFICATION`) and `openRawResourceFd`.
+  - Added a dedicated 🔊 Test sound button inside the AI Settings sheet for immediate verification.
+  - Wired sound playback to trigger on both AI Smart Chapters and AI SponsorBlock scan completions.
+- Updated `dialog_ai_settings.xml` and `AiSettingsSheet.kt`:
+  - Added ApiBeam radio selection with dynamic URL input field.
+  - Added `NestedScrollView` to prevent bottom sheet clipping on smaller mobile displays.
+- Bumped app version in `app/build.gradle.kts`:
+  - `versionCode`: 10003 -> 10004
+  - `versionName`: "1.0.2-smartchapters" -> "1.0.3-smartchapters"
+- Built signed production Release APK: `SmartLibre-v1.0.3.apk`.
+- Pushed changes to GitHub repository `pavnxet/Smart-Libre` and published Release `v1.0.3`.
+
+
 
 
 

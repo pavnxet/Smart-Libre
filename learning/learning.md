@@ -1,4 +1,4 @@
-﻿# LibreTube Project Learnings
+# LibreTube Project Learnings
 
 ## System Configuration
 - SDK Root: `E:\Android\Sdk`
@@ -8,3 +8,6 @@
 ## Codebase Architecture
 - Native Kotlin / Jetpack Compose Android app.
 - Multi-module gradle configuration (`app`, `baselineprofile`).
+- ApiBeam Relay: OpenAI compatible `/chat/completions` endpoint running over websocket room relay; requires 0 auth or dummy token.
+- Android Raw Audio Playback: Use explicit `AudioAttributes` (`USAGE_MEDIA`, `CONTENT_TYPE_SONIFICATION`) and `openRawResourceFd` rather than raw resource ID references to avoid OEM audio focus/stream muting.
+
